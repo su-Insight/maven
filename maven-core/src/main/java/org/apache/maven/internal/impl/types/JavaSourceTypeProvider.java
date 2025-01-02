@@ -22,19 +22,24 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.apache.maven.api.Language;
 import org.apache.maven.api.Type;
-import org.apache.maven.internal.impl.DefaultDependencyProperties;
 import org.apache.maven.internal.impl.DefaultType;
 
+/**
+ * Type provider for source code packaged in a JAR file.
+ *
+ * @see Type#JAVA_SOURCE
+ */
 @Named(JavaSourceTypeProvider.NAME)
 @Singleton
 public class JavaSourceTypeProvider implements Provider<Type> {
-    public static final String NAME = "java-source";
+    public static final String NAME = Type.JAVA_SOURCE;
 
     private final Type type;
 
     public JavaSourceTypeProvider() {
-        this.type = new DefaultType(NAME, Type.LANGUAGE_JAVA, "jar", "sources", new DefaultDependencyProperties());
+        this.type = new DefaultType(NAME, Language.JAVA_FAMILY, "jar", "sources", false);
     }
 
     @Override
