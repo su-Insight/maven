@@ -17,7 +17,7 @@
 
 name: Java CI
 
-on: [push, pull_request, workflow_dispatch]
+on: [push, pull_request]
 
 # clear all permissions for GITHUB_TOKEN
 permissions: {}
@@ -25,11 +25,8 @@ permissions: {}
 jobs:
   build:
 
-    # execute on any push, workflow_dispatch  or pull request from forked repo
-    if: >
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork )
+    # execute on any push or pull request from forked repo
+    if: github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork )
 
     strategy:
       matrix:
@@ -45,16 +42,12 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: 11
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Set up Maven
-        run:
-          mvn --errors --batch-mode --show-version org.apache.maven.plugins:maven-wrapper-plugin:3.3.2:wrapper "-Dmaven=3.9.7"
-
       - name: Build with Maven
-        run: ./mvnw verify -e -B -V -DdistributionFileName=apache-maven
+        run: mvn verify -e -B -V -DdistributionFileName=apache-maven
 
       - name: Upload built Maven
         uses: actions/upload-artifact@v4
@@ -68,7 +61,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        java: [17, 21]
+        java: [11, 17, 21]
 
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -125,16 +118,12 @@ jobs:
           path: maven/
           persist-credentials: false
 
-      - name: Set up Maven
-        run:
-          mvn --errors --batch-mode --show-version org.apache.maven.plugins:maven-wrapper-plugin:3.3.2:wrapper "-Dmaven=3.9.7"
-
       - name: Build Maven
-        run: ./mvnw install -e -B -V -DdistributionFileName=apache-maven -DskipTests -f maven/pom.xml
+        run: mvn install -e -B -V -DdistributionFileName=apache-maven -DskipTests -f maven/pom.xml
 
       - name: Running integration tests
         shell: bash
-        run: ./mvnw install -e -B -V -Prun-its,embedded -DmavenDistro="$GITHUB_WORKSPACE/maven/apache-maven/target/apache-maven-bin.zip" -f maven-integration-testing/pom.xml
+        run: mvn install -e -B -V -Prun-its,embedded -DmavenDistro="$GITHUB_WORKSPACE/maven/apache-maven/target/apache-maven-bin.zip" -f maven-integration-testing/pom.xml
 
       - name: Upload artifact on integration testing
         uses: actions/upload-artifact@v4
