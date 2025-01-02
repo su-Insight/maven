@@ -222,10 +222,16 @@ public class DefaultMaven implements Maven {
 
             legacySupport.setSession(session);
 
-            return doExecute(request, session, result, chainedWorkspaceReader);
+            result = doExecute(request, session, result, chainedWorkspaceReader);
+        } catch (Exception e) {
+            if (e instanceof ClassCastException) {
+                throw e;
+            }
+            result.addException(e);
         } finally {
             sessionScope.exit();
         }
+        return result;
     }
 
     private MavenExecutionResult doExecute(
