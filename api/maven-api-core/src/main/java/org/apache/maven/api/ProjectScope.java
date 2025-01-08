@@ -18,42 +18,31 @@
  */
 package org.apache.maven.api;
 
-import java.util.Map;
-
 import org.apache.maven.api.annotations.Experimental;
 import org.apache.maven.api.annotations.Immutable;
-import org.apache.maven.api.annotations.Nonnull;
+
+import static org.apache.maven.api.ExtensibleEnums.projectScope;
 
 /**
- * Dependency properties supported by Maven Core.
+ * Project scope.
+ * <p>
+ * Implementation must have {@code equals()} and {@code hashCode()} implemented, so implementations of this interface
+ * can be used as keys.
  *
  * @since 4.0.0
  */
 @Experimental
 @Immutable
-public interface DependencyProperties {
-    /**
-     * Boolean flag telling that dependency contains all of its dependencies. Value of this key should be parsed with
-     * {@link Boolean#parseBoolean(String)} to obtain value.
-     * <p>
-     * <em>Important: this flag must be kept in sync with resolver! (as is used during collection)</em>
-     */
-    String FLAG_INCLUDES_DEPENDENCIES = "includesDependencies";
+@SuppressWarnings("checkstyle:InterfaceIsType")
+public interface ProjectScope extends ExtensibleEnum {
 
     /**
-     * Boolean flag telling that dependency is meant to be placed on class path. Value of this key should be parsed with
-     * {@link Boolean#parseBoolean(String)} to obtain value.
+     * Main scope.
      */
-    String FLAG_CLASS_PATH_CONSTITUENT = "classPathConstituent";
+    ProjectScope MAIN = projectScope("main");
 
     /**
-     * Returns immutable "map view" of all the properties.
+     * Test scope.
      */
-    @Nonnull
-    Map<String, String> asMap();
-
-    /**
-     * Returns {@code true} if given flag is {@code true}.
-     */
-    boolean checkFlag(@Nonnull String flag);
+    ProjectScope TEST = projectScope("test");
 }

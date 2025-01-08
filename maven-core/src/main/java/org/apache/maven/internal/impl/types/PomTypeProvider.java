@@ -22,19 +22,24 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.apache.maven.api.Language;
 import org.apache.maven.api.Type;
-import org.apache.maven.internal.impl.DefaultDependencyProperties;
 import org.apache.maven.internal.impl.DefaultType;
 
+/**
+ * Type provider for a POM file.
+ *
+ * @see Type#POM
+ */
 @Named(PomTypeProvider.NAME)
 @Singleton
 public class PomTypeProvider implements Provider<Type> {
-    public static final String NAME = "pom";
+    public static final String NAME = Type.POM;
 
     private final Type type;
 
     public PomTypeProvider() {
-        this.type = new DefaultType(NAME, Type.LANGUAGE_NONE, "pom", null, new DefaultDependencyProperties());
+        this.type = new DefaultType(NAME, Language.NONE, "pom", null, false);
     }
 
     @Override
