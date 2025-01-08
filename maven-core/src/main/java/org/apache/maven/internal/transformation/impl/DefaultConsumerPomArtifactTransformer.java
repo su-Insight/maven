@@ -18,7 +18,6 @@
  */
 package org.apache.maven.internal.transformation.impl;
 
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -42,12 +41,12 @@ import org.apache.maven.model.building.ModelBuildingException;
 import org.apache.maven.model.v4.MavenStaxWriter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.artifact.ProjectArtifact;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.deployment.DeployRequest;
 import org.eclipse.aether.installation.InstallRequest;
+import org.eclipse.sisu.PreDestroy;
 
 /**
  * Consumer POM transformer.
@@ -113,7 +112,7 @@ class DefaultConsumerPomArtifactTransformer implements ConsumerPomArtifactTransf
     }
 
     void transform(MavenProject project, RepositorySystemSession session, Path src, Path tgt)
-            throws ModelBuildingException, ComponentLookupException, XMLStreamException, IOException {
+            throws ModelBuildingException, XMLStreamException, IOException {
         Model model = builder.build(session, project, src);
         write(model, tgt);
     }

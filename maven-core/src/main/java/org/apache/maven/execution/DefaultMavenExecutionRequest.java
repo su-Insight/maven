@@ -70,6 +70,8 @@ public class DefaultMavenExecutionRequest implements MavenExecutionRequest {
 
     private boolean ignoreInvalidArtifactDescriptor = true;
 
+    private boolean ignoreTransitiveRepositories;
+
     private List<Proxy> proxies;
 
     private List<Server> servers;
@@ -133,7 +135,7 @@ public class DefaultMavenExecutionRequest implements MavenExecutionRequest {
 
     private Properties userProperties;
 
-    private Date startTime;
+    private Date startTime = new Date();
 
     private boolean showErrors = false;
 
@@ -180,6 +182,7 @@ public class DefaultMavenExecutionRequest implements MavenExecutionRequest {
         copy.setCacheTransferError(original.isCacheTransferError());
         copy.setIgnoreMissingArtifactDescriptor(original.isIgnoreMissingArtifactDescriptor());
         copy.setIgnoreInvalidArtifactDescriptor(original.isIgnoreInvalidArtifactDescriptor());
+        copy.setIgnoreTransitiveRepositories(original.isIgnoreTransitiveRepositories());
         copy.setProxies(original.getProxies());
         copy.setServers(original.getServers());
         copy.setMirrors(original.getMirrors());
@@ -211,6 +214,7 @@ public class DefaultMavenExecutionRequest implements MavenExecutionRequest {
         copy.setExecutionListener(original.getExecutionListener());
         copy.setUseLegacyLocalRepository(original.isUseLegacyLocalRepository());
         copy.setBuilderId(original.getBuilderId());
+        copy.setStartTime(original.getStartTime());
         return copy;
     }
 
@@ -1057,8 +1061,19 @@ public class DefaultMavenExecutionRequest implements MavenExecutionRequest {
     }
 
     @Override
+    public boolean isIgnoreTransitiveRepositories() {
+        return ignoreTransitiveRepositories;
+    }
+
+    @Override
     public MavenExecutionRequest setIgnoreInvalidArtifactDescriptor(boolean ignoreInvalid) {
         this.ignoreInvalidArtifactDescriptor = ignoreInvalid;
+        return this;
+    }
+
+    @Override
+    public MavenExecutionRequest setIgnoreTransitiveRepositories(boolean ignoreTransitiveRepositories) {
+        this.ignoreTransitiveRepositories = ignoreTransitiveRepositories;
         return this;
     }
 
