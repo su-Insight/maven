@@ -18,7 +18,6 @@
  */
 package org.eclipse.sisu.plexus;
 
-import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -43,6 +42,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.MXParser;
 import org.codehaus.plexus.util.xml.pull.XmlPullParser;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.sisu.Priority;
 import org.eclipse.sisu.bean.BeanProperties;
 import org.eclipse.sisu.bean.BeanProperty;
 import org.eclipse.sisu.inject.Logs;
@@ -339,7 +339,7 @@ public final class PlexusXmlBeanConverter implements PlexusBeanConverter {
      *
      * @param clazz The implementation type
      * @param value The string argument
-     * @return Instance of given implementation, constructed using the the given string
+     * @return Instance of given implementation, constructed using the given string
      */
     private static <T> T newImplementation(final Class<T> clazz, final String value) {
         try {

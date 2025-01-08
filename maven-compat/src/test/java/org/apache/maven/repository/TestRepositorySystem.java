@@ -18,7 +18,6 @@
  */
 package org.apache.maven.repository;
 
-import javax.annotation.Priority;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -55,12 +54,14 @@ import org.apache.maven.settings.Mirror;
 import org.apache.maven.settings.Proxy;
 import org.apache.maven.settings.Server;
 import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.sisu.Priority;
 
 /**
  */
 @Named
 @Singleton
 @Priority(10)
+@Deprecated
 public class TestRepositorySystem implements RepositorySystem {
 
     private final ModelReader modelReader;

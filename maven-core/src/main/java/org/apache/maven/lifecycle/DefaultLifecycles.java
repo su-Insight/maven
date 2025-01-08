@@ -30,8 +30,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.codehaus.plexus.PlexusContainer;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+import org.apache.maven.api.services.LifecycleRegistry;
+import org.apache.maven.api.services.Lookup;
+import org.apache.maven.api.services.LookupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,26 +50,31 @@ public class DefaultLifecycles {
 
     // @Configuration(source="org/apache/maven/lifecycle/lifecycles.xml")
 
-    private final PlexusContainer plexusContainer;
+    private final Lookup lookup;
+
+    private final LifecycleRegistry registry;
 
     private Map<String, Lifecycle> customLifecycles;
 
     public DefaultLifecycles() {
-        this.plexusContainer = null;
+        this.lookup = null;
+        this.registry = null;
     }
 
     /**
-     * @deprecated Rely on {@link #DefaultLifecycles(PlexusContainer)} instead
+     * @deprecated Use {@link #DefaultLifecycles(LifecycleRegistry,Lookup)} instead
      */
     @Deprecated
     public DefaultLifecycles(Map<String, Lifecycle> lifecycles, org.codehaus.plexus.logging.Logger logger) {
         this.customLifecycles = lifecycles;
-        this.plexusContainer = null;
+        this.lookup = null;
+        this.registry = null;
     }
 
     @Inject
-    public DefaultLifecycles(PlexusContainer plexusContainer) {
-        this.plexusContainer = plexusContainer;
+    public DefaultLifecycles(LifecycleRegistry registry, Lookup lookup) {
+        this.lookup = lookup;
+        this.registry = registry;
     }
 
     /**
@@ -143,14 +149,18 @@ public class DefaultLifecycles {
     private Map<String, Lifecycle> lookupLifecycles() {
         // TODO: Remove the following code when maven-compat is gone
         // This code is here to ensure maven-compat's EmptyLifecycleExecutor keeps on working.
-        if (plexusContainer == null) {
+        if (lookup == null) {
             return customLifecycles != null ? customLifecycles : new HashMap<>();
         }
 
         // Lifecycles cannot be cached as extensions might add custom lifecycles later in the execution.
         try {
-            return plexusContainer.lookupMap(Lifecycle.class);
-        } catch (ComponentLookupException e) {
+            Map<String, Lifecycle> lifecycles = new HashMap<>(lookup.lookupMap(Lifecycle.class));
+            for (org.apache.maven.api.Lifecycle lf : registry) {
+                lifecycles.put(lf.id(), new Lifecycle(registry, lf));
+            }
+            return lifecycles;
+        } catch (LookupException e) {
             throw new IllegalStateException("Unable to lookup lifecycles from the plexus container", e);
         }
     }

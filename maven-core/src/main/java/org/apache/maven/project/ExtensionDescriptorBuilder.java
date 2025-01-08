@@ -32,7 +32,7 @@ import java.util.zip.ZipEntry;
 
 import com.ctc.wstx.stax.WstxInputFactory;
 import org.apache.maven.api.xml.XmlNode;
-import org.apache.maven.internal.xml.XmlNodeBuilder;
+import org.apache.maven.internal.xml.XmlNodeStaxBuilder;
 
 /**
  * Creates an extension descriptor from some XML stream.
@@ -89,7 +89,7 @@ public class ExtensionDescriptorBuilder {
         XmlNode dom;
         try {
             XMLStreamReader reader = WstxInputFactory.newFactory().createXMLStreamReader(is);
-            dom = XmlNodeBuilder.build(reader);
+            dom = XmlNodeStaxBuilder.build(reader);
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -115,7 +115,7 @@ public class ExtensionDescriptorBuilder {
                 String string = child.getValue();
                 if (string != null) {
                     string = string.trim();
-                    if (string.length() > 0) {
+                    if (!string.isEmpty()) {
                         strings.add(string);
                     }
                 }

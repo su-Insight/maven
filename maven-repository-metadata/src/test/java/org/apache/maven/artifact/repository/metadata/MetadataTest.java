@@ -31,8 +31,8 @@ import java.util.TimeZone;
 
 import com.ctc.wstx.stax.WstxInputFactory;
 import com.ctc.wstx.stax.WstxOutputFactory;
-import org.apache.maven.artifact.repository.metadata.io.MetadataStaxReader;
-import org.apache.maven.artifact.repository.metadata.io.MetadataStaxWriter;
+import org.apache.maven.metadata.v4.MetadataStaxReader;
+import org.apache.maven.metadata.v4.MetadataStaxWriter;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.junit.jupiter.api.BeforeEach;
@@ -224,7 +224,7 @@ class MetadataTest {
         System.setProperty(XMLInputFactory.class.getName(), WstxInputFactory.class.getName());
         System.setProperty(XMLOutputFactory.class.getName(), WstxOutputFactory.class.getName());
 
-        Metadata source = new Metadata(org.apache.maven.artifact.repository.metadata.v4.Metadata.newBuilder(
+        Metadata source = new Metadata(org.apache.maven.api.metadata.Metadata.newBuilder(
                         createMetadataFromArtifact(artifact).getDelegate(), true)
                 .modelEncoding("UTF-16")
                 .build());
