@@ -29,6 +29,7 @@ import org.apache.maven.model.building.ModelProblem.Version;
 import org.apache.maven.model.building.ModelProblemCollector;
 import org.apache.maven.model.building.ModelProblemCollectorRequest;
 import org.apache.maven.model.profile.ProfileActivationContext;
+import org.codehaus.plexus.interpolation.InterpolationException;
 import org.codehaus.plexus.util.StringUtils;
 
 /**
@@ -82,6 +83,10 @@ public class PropertyProfileActivator implements ProfileActivator {
                 reverseValue = true;
                 propValue = propValue.substring(1);
             }
+            propValue = interpolate(profile, property, propValue, context, problems);
+            if (propValue == null) {
+                return false;
+            }
 
             // we have a value, so it has to match the system value...
             boolean result = propValue.equals(sysValue);
@@ -108,5 +113,21 @@ public class PropertyProfileActivator implements ProfileActivator {
             return false;
         }
         return true;
+    }
+
+    private String interpolate(
+            Profile profile,
+            ActivationProperty property,
+            String value,
+            ProfileActivationContext context,
+            ModelProblemCollector problems) {
+        try {
+            return context.interpolate(value);
+        } catch (InterpolationException e) {
+            problems.add(new ModelProblemCollectorRequest(Severity.ERROR, Version.BASE)
+                    .setMessage("The property value could not be interpolated in the profile " + profile.getId())
+                    .setLocation(property.getLocation("")));
+            return null;
+        }
     }
 }
