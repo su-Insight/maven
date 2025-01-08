@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven</groupId>
     <artifactId>maven</artifactId>
-    <version>4.0.0-alpha-9-SNAPSHOT</version>
+    <version>4.0.0-beta-3-SNAPSHOT</version>
   </parent>
 
   <artifactId>maven-core</artifactId>
@@ -33,6 +33,10 @@ under the License.
 
   <dependencies>
     <!--  Maven -->
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-di</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-model</artifactId>
@@ -84,8 +88,8 @@ under the License.
       <artifactId>maven-api-spi</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.maven.resolver</groupId>
-      <artifactId>maven-resolver-impl</artifactId>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-api-impl</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
@@ -100,37 +104,9 @@ under the License.
       <artifactId>maven-resolver-util</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.sisu</groupId>
-      <artifactId>org.eclipse.sisu.plexus</artifactId>
+      <groupId>org.apache.maven.resolver</groupId>
+      <artifactId>maven-resolver-impl</artifactId>
     </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.sisu</groupId>
-      <artifactId>org.eclipse.sisu.inject</artifactId>
-      <classifier>no_asm</classifier>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <classifier>classes</classifier>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>failureaccess</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.inject</groupId>
-      <artifactId>javax.inject</artifactId>
-    </dependency>
-    <!-- Plexus -->
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-classworlds</artifactId>
@@ -140,7 +116,43 @@ under the License.
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <!-- Test dependencies -->
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.sisu</groupId>
+      <artifactId>org.eclipse.sisu.plexus</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.sisu</groupId>
+      <artifactId>org.eclipse.sisu.inject</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
@@ -152,18 +164,8 @@ under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.xmlunit</groupId>
       <artifactId>xmlunit-assertj</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -175,6 +177,11 @@ under the License.
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>${mockitoVersion}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -307,10 +314,12 @@ under the License.
               <!-- END default constructor on Plexus/JSR 330 components -->
               <!-- system property with that name no longer evaluated -->
               <exclude>org.apache.maven.project.DefaultProjectBuilder#DISABLE_GLOBAL_MODEL_CACHE_SYSTEM_PROPERTY</exclude>
+              <exclude>org.apache.maven.project.DefaultModelBuildingListener</exclude>
+              <exclude>org.apache.maven.project.ProjectModelResolver#ProjectModelResolver(org.eclipse.aether.RepositorySystemSession,org.eclipse.aether.RequestTrace,org.eclipse.aether.RepositorySystem,org.eclipse.aether.impl.RemoteRepositoryManager,java.util.List,org.apache.maven.project.ProjectBuildingRequest$RepositoryMerging,org.apache.maven.project.ReactorModelPool):CONSTRUCTOR_REMOVED</exclude>
               <!-- was only a workaround for Plexus Container, hopefully never used by anyone else -->
               <exclude>org.apache.maven.plugin.DefaultBuildPluginManager#setMojoExecutionListeners(java.util.List)</exclude>
               <!-- could have never been used due to usage of non-export class (CoreExportsProvider) -->
-              <exclude>org.apache.maven.classrealm.DefaultClassRealmManager#DefaultClassRealmManager(org.codehaus.plexus.logging.Logger,org.codehaus.plexus.PlexusContainer,java.util.List,org.apache.maven.extension.internal.CoreExportsProvider)</exclude>
+              <exclude>org.apache.maven.classrealm.DefaultClassRealmManager#DefaultClassRealmManager(org.codehaus.plexus.logging.Logger,org.codehaus.plexus.PlexusContainer,java.util.List,org.apache.maven.extension.internal.CoreExports)</exclude>
               <!-- internal field removed -->
               <exclude>org.apache.maven.graph.DefaultGraphBuilder#projectBuilder</exclude>
               <!-- MavenPluginValidator has been transformed into an interface -->

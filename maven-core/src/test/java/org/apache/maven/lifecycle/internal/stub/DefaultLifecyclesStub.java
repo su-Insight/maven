@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.maven.internal.impl.DefaultLifecycleRegistry;
+import org.apache.maven.internal.impl.DefaultLookup;
 import org.apache.maven.lifecycle.DefaultLifecycles;
 import org.apache.maven.lifecycle.Lifecycle;
 import org.codehaus.plexus.PlexusContainer;
@@ -70,6 +72,7 @@ public class DefaultLifecyclesStub {
         PlexusContainer mockedContainer = mock(PlexusContainer.class);
         when(mockedContainer.lookupMap(Lifecycle.class)).thenReturn(lifeCycles);
 
-        return new DefaultLifecycles(mockedContainer);
+        DefaultLifecycleRegistry reg = new DefaultLifecycleRegistry();
+        return new DefaultLifecycles(reg, new DefaultLookup(mockedContainer));
     }
 }
