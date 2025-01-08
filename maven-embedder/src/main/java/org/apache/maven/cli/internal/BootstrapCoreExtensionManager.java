@@ -25,17 +25,39 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.RepositoryUtils;
+import org.apache.maven.api.Service;
+import org.apache.maven.api.Session;
 import org.apache.maven.api.model.Plugin;
+import org.apache.maven.api.services.ArtifactCoordinateFactory;
+import org.apache.maven.api.services.ArtifactManager;
+import org.apache.maven.api.services.ArtifactResolver;
+import org.apache.maven.api.services.RepositoryFactory;
+import org.apache.maven.api.services.VersionParser;
+import org.apache.maven.api.services.VersionRangeResolver;
 import org.apache.maven.cli.internal.extension.model.CoreExtension;
+import org.apache.maven.execution.DefaultMavenExecutionResult;
 import org.apache.maven.execution.MavenExecutionRequest;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.extension.internal.CoreExports;
 import org.apache.maven.extension.internal.CoreExtensionEntry;
-import org.apache.maven.internal.aether.DefaultRepositorySystemSessionFactory;
+import org.apache.maven.internal.impl.DefaultArtifactCoordinateFactory;
+import org.apache.maven.internal.impl.DefaultArtifactManager;
+import org.apache.maven.internal.impl.DefaultArtifactResolver;
+import org.apache.maven.internal.impl.DefaultModelVersionParser;
+import org.apache.maven.internal.impl.DefaultRepositoryFactory;
+import org.apache.maven.internal.impl.DefaultSession;
+import org.apache.maven.internal.impl.DefaultVersionParser;
+import org.apache.maven.internal.impl.DefaultVersionRangeResolver;
+import org.apache.maven.internal.impl.InternalSession;
 import org.apache.maven.plugin.PluginResolutionException;
 import org.apache.maven.plugin.internal.DefaultPluginDependenciesResolver;
+import org.apache.maven.resolver.MavenChainedWorkspaceReader;
+import org.apache.maven.resolver.RepositorySystemSessionFactory;
 import org.codehaus.plexus.DefaultPlexusContainer;
 import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.classworlds.ClassWorld;
@@ -44,14 +66,21 @@ import org.codehaus.plexus.interpolation.InterpolationException;
 import org.codehaus.plexus.interpolation.Interpolator;
 import org.codehaus.plexus.interpolation.MapBasedValueSource;
 import org.codehaus.plexus.interpolation.StringSearchInterpolator;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.RepositorySystemSession.CloseableSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyFilter;
-import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.internal.impl.DefaultChecksumPolicyProvider;
+import org.eclipse.aether.internal.impl.DefaultRemoteRepositoryManager;
+import org.eclipse.aether.internal.impl.DefaultUpdatePolicyAnalyzer;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.repository.WorkspaceReader;
+import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.util.filter.ExclusionsDependencyFilter;
-import org.eclipse.aether.util.graph.visitor.PreorderNodeListGenerator;
+import org.eclipse.aether.util.version.GenericVersionScheme;
+import org.eclipse.sisu.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +97,7 @@ public class BootstrapCoreExtensionManager {
 
     private final DefaultPluginDependenciesResolver pluginDependenciesResolver;
 
-    private final DefaultRepositorySystemSessionFactory repositorySystemSessionFactory;
+    private final RepositorySystemSessionFactory repositorySystemSessionFactory;
 
     private final CoreExports coreExports;
 
@@ -76,17 +105,25 @@ public class BootstrapCoreExtensionManager {
 
     private final ClassRealm parentRealm;
 
+    private final WorkspaceReader ideWorkspaceReader;
+
+    private final RepositorySystem repoSystem;
+
     @Inject
     public BootstrapCoreExtensionManager(
             DefaultPluginDependenciesResolver pluginDependenciesResolver,
-            DefaultRepositorySystemSessionFactory repositorySystemSessionFactory,
+            RepositorySystemSessionFactory repositorySystemSessionFactory,
             CoreExports coreExports,
-            PlexusContainer container) {
+            PlexusContainer container,
+            @Nullable @Named("ide") WorkspaceReader ideWorkspaceReader,
+            RepositorySystem repoSystem) {
         this.pluginDependenciesResolver = pluginDependenciesResolver;
         this.repositorySystemSessionFactory = repositorySystemSessionFactory;
         this.coreExports = coreExports;
         this.classWorld = ((DefaultPlexusContainer) container).getClassWorld();
         this.parentRealm = container.getContainerRealm();
+        this.ideWorkspaceReader = ideWorkspaceReader;
+        this.repoSystem = repoSystem;
     }
 
     public List<CoreExtensionEntry> loadCoreExtensions(
@@ -94,7 +131,12 @@ public class BootstrapCoreExtensionManager {
             throws Exception {
         try (CloseableSession repoSession = repositorySystemSessionFactory
                 .newRepositorySessionBuilder(request)
+                .setWorkspaceReader(new MavenChainedWorkspaceReader(request.getWorkspaceReader(), ideWorkspaceReader))
                 .build()) {
+            MavenSession mSession = new MavenSession(repoSession, request, new DefaultMavenExecutionResult());
+            InternalSession iSession = new SimpleSession(mSession, repoSystem, null);
+            InternalSession.associate(repoSession, iSession);
+
             List<RemoteRepository> repositories = RepositoryUtils.toRepos(request.getPluginArtifactRepositories());
             Interpolator interpolator = createInterpolator(request);
 
@@ -178,15 +220,13 @@ public class BootstrapCoreExtensionManager {
                     .version(interpolator.interpolate(extension.getVersion()))
                     .build();
 
-            DependencyNode root = pluginDependenciesResolver.resolveCoreExtension(
+            DependencyResult result = pluginDependenciesResolver.resolveCoreExtension(
                     new org.apache.maven.model.Plugin(plugin), dependencyFilter, repositories, repoSession);
-            PreorderNodeListGenerator nlg = new PreorderNodeListGenerator();
-            root.accept(nlg);
-
-            return nlg.getArtifacts(false);
-        } catch (PluginResolutionException e) {
-            throw new ExtensionResolutionException(extension, e.getCause());
-        } catch (InterpolationException e) {
+            return result.getArtifactResults().stream()
+                    .filter(ArtifactResult::isResolved)
+                    .map(ArtifactResult::getArtifact)
+                    .collect(Collectors.toList());
+        } catch (PluginResolutionException | InterpolationException e) {
             throw new ExtensionResolutionException(extension, e);
         }
     }
@@ -196,5 +236,41 @@ public class BootstrapCoreExtensionManager {
         interpolator.addValueSource(new MapBasedValueSource(request.getUserProperties()));
         interpolator.addValueSource(new MapBasedValueSource(request.getSystemProperties()));
         return interpolator;
+    }
+
+    static class SimpleSession extends DefaultSession {
+        SimpleSession(
+                MavenSession session,
+                RepositorySystem repositorySystem,
+                List<org.apache.maven.api.RemoteRepository> repositories) {
+            super(session, repositorySystem, repositories, null, null, null);
+        }
+
+        @Override
+        protected Session newSession(
+                MavenSession mavenSession, List<org.apache.maven.api.RemoteRepository> repositories) {
+            return new SimpleSession(mavenSession, getRepositorySystem(), repositories);
+        }
+
+        @Override
+        public <T extends Service> T getService(Class<T> clazz) throws NoSuchElementException {
+            if (clazz == ArtifactCoordinateFactory.class) {
+                return (T) new DefaultArtifactCoordinateFactory();
+            } else if (clazz == VersionParser.class) {
+                return (T) new DefaultVersionParser(new DefaultModelVersionParser(new GenericVersionScheme()));
+            } else if (clazz == VersionRangeResolver.class) {
+                return (T) new DefaultVersionRangeResolver(repositorySystem);
+            } else if (clazz == ArtifactResolver.class) {
+                return (T) new DefaultArtifactResolver();
+            } else if (clazz == ArtifactManager.class) {
+                return (T) new DefaultArtifactManager(this);
+            } else if (clazz == RepositoryFactory.class) {
+                return (T) new DefaultRepositoryFactory(new DefaultRemoteRepositoryManager(
+                        new DefaultUpdatePolicyAnalyzer(), new DefaultChecksumPolicyProvider()));
+                // } else if (clazz == ModelResolver.class) {
+                //    return (T) new DefaultModelResolver();
+            }
+            throw new NoSuchElementException("No service for " + clazz.getName());
+        }
     }
 }

@@ -31,20 +31,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.maven.RepositoryUtils;
-import org.apache.maven.api.Artifact;
-import org.apache.maven.api.ArtifactCoordinate;
-import org.apache.maven.api.Node;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.services.BuilderProblem;
-import org.apache.maven.api.services.DependencyCollectorResult;
+import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.ProjectBuilder;
 import org.apache.maven.api.services.ProjectBuilderException;
 import org.apache.maven.api.services.ProjectBuilderRequest;
 import org.apache.maven.api.services.ProjectBuilderResult;
 import org.apache.maven.api.services.Source;
-import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.model.building.ModelProblem;
 import org.apache.maven.model.building.ModelSource2;
@@ -69,7 +64,7 @@ public class DefaultProjectBuilder implements ProjectBuilder {
     @Override
     public ProjectBuilderResult build(ProjectBuilderRequest request)
             throws ProjectBuilderException, IllegalArgumentException {
-        DefaultSession session = (DefaultSession) request.getSession();
+        InternalMavenSession session = InternalMavenSession.from(request.getSession());
         try {
             List<ArtifactRepository> repositories = session.toArtifactRepositories(session.getRemoteRepositories());
             ProjectBuildingRequest req = new DefaultProjectBuildingRequest()
@@ -85,22 +80,6 @@ public class DefaultProjectBuilder implements ProjectBuilder {
                 Source source = request.getSource().get();
                 ModelSource2 modelSource = new SourceWrapper(source);
                 res = builder.build(modelSource, req);
-            } else if (request.getArtifact().isPresent()) {
-                Artifact a = request.getArtifact().get();
-                org.eclipse.aether.artifact.Artifact aetherArtifact = session.toArtifact(a);
-                org.apache.maven.artifact.Artifact artifact = RepositoryUtils.toArtifact(aetherArtifact);
-                res = builder.build(artifact, request.isAllowStubModel(), req);
-            } else if (request.getCoordinate().isPresent()) {
-                ArtifactCoordinate c = request.getCoordinate().get();
-                org.apache.maven.artifact.Artifact artifact = new DefaultArtifact(
-                        c.getGroupId(),
-                        c.getArtifactId(),
-                        c.getVersion().asString(),
-                        null,
-                        c.getExtension(),
-                        c.getClassifier(),
-                        null);
-                res = builder.build(artifact, request.isAllowStubModel(), req);
             } else {
                 throw new IllegalArgumentException("Invalid request");
             }
@@ -190,19 +169,10 @@ public class DefaultProjectBuilder implements ProjectBuilder {
 
                 @Nonnull
                 @Override
-                public Optional<DependencyCollectorResult> getDependencyResolverResult() {
+                public Optional<DependencyResolverResult> getDependencyResolverResult() {
                     return Optional.ofNullable(res.getDependencyResolutionResult())
-                            .map(r -> new DependencyCollectorResult() {
-                                @Override
-                                public List<Exception> getExceptions() {
-                                    return r.getCollectionErrors();
-                                }
-
-                                @Override
-                                public Node getRoot() {
-                                    return session.getNode(r.getDependencyGraph());
-                                }
-                            });
+                            .map(r -> new DefaultDependencyResolverResult(
+                                    null, r.getCollectionErrors(), session.getNode(r.getDependencyGraph()), 0));
                 }
             };
         } catch (ProjectBuildingException e) {
