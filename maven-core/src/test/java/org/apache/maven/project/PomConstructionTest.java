@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.maven.MavenTestHelper;
 import org.apache.maven.artifact.repository.layout.DefaultRepositoryLayout;
 import org.apache.maven.bridge.MavenRepositorySystem;
 import org.apache.maven.model.Model;
@@ -37,7 +38,6 @@ import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.model.ReportSet;
 import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.project.harness.PomTestWrapper;
-import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.codehaus.plexus.testing.PlexusTest;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
@@ -79,6 +79,7 @@ class PomConstructionTest {
     void setUp() throws Exception {
         testDirectory = new File(getBasedir(), BASE_POM_DIR);
         new File(getBasedir(), BASE_MIXIN_DIR);
+        EmptyLifecycleBindingsInjector.useEmpty();
     }
 
     /**
@@ -1887,7 +1888,7 @@ class PomConstructionTest {
                         ? ModelBuildingRequest.VALIDATION_LEVEL_MAVEN_2_0
                         : ModelBuildingRequest.VALIDATION_LEVEL_STRICT);
 
-        DefaultRepositorySystemSession repoSession = MavenRepositorySystemUtils.newSession();
+        DefaultRepositorySystemSession repoSession = MavenTestHelper.createSession(repositorySystem);
         LocalRepository localRepo =
                 new LocalRepository(config.getLocalRepository().getBasedir());
         repoSession.setLocalRepositoryManager(

@@ -31,9 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.maven.artifact.ArtifactUtils;
 import org.apache.maven.artifact.repository.metadata.Versioning;
-import org.apache.maven.artifact.repository.metadata.io.MetadataStaxReader;
+import org.apache.maven.metadata.v4.MetadataStaxReader;
 import org.eclipse.aether.RepositoryEvent;
 import org.eclipse.aether.RepositoryEvent.EventType;
 import org.eclipse.aether.RepositorySystemSession;
@@ -201,9 +200,8 @@ public class DefaultVersionRangeResolver implements VersionRangeResolver {
                 try (SyncContext syncContext = syncContextFactory.newInstance(session, true)) {
                     syncContext.acquire(null, Collections.singleton(metadata));
 
-                    if (metadata.getFile() != null && metadata.getFile().exists()) {
-                        try (InputStream in =
-                                Files.newInputStream(metadata.getFile().toPath())) {
+                    if (metadata.getPath() != null && Files.exists(metadata.getPath())) {
+                        try (InputStream in = Files.newInputStream(metadata.getPath())) {
                             versioning = new Versioning(
                                     new MetadataStaxReader().read(in, false).getVersioning());
                         }
@@ -226,7 +224,9 @@ public class DefaultVersionRangeResolver implements VersionRangeResolver {
         Versioning filteredVersions = versioning.clone();
 
         for (String version : versioning.getVersions()) {
-            if (!remoteRepository.getPolicy(ArtifactUtils.isSnapshot(version)).isEnabled()) {
+            if (!remoteRepository
+                    .getPolicy(DefaultModelVersionParser.checkSnapshot(version))
+                    .isEnabled()) {
                 filteredVersions.removeVersion(version);
             }
         }
